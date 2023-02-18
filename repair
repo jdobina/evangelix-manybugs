@@ -1,0 +1,54 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# Usage: ./repair SUBJECT VERSION
+#
+# Top script for executing repair
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+usage="Usage: ./repair SUBJECT VERSION"
+
+if [[ $# > 0 ]]; then
+    subject="$1"
+    shift
+else
+    echo "$usage"
+    exit 1
+fi
+
+if [[ $# > 0 ]]; then
+    version="$1"
+    shift
+else
+    echo "$usage"
+    exit 1
+fi
+
+case $subject in
+    wireshark|gzip|libtiff)
+        rm -rf ${subject}-*-${version}
+        ./fetch $subject $version
+        ./repair-$subject $version `./get-options $subject $version`
+        ;;
+    php)
+        rm -rf ${subject}-*-${version}
+        ./fetch $subject $version
+        ./repair-$subject $version `./get-options $subject $version` --ignore-lines
+        ;;
+    gmp)
+        rm -rf ${subject}-*-${version}
+        ./fetch $subject $version
+        ./repair-$subject-$version `./get-options $subject $version`
+        ;;
+    openssl)
+        rm -rf ${subject}-${version}
+        ./fetch $subject $version
+        ./repair-$subject $version `./get-options $subject $version`
+        ;;
+    *)
+        echo 'Wrong subject name'
+        exit 1
+        ;;
+esac

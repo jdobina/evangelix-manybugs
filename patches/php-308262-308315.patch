@@ -1,0 +1,11 @@
+--- a/Zend/zend_execute.c
++++ b/Zend/zend_execute.c
+@@ -1262,7 +1262,7 @@
+ 				Z_TYPE_P(ptr) = IS_STRING;
+ 
+ 				if (Z_LVAL_P(dim) < 0 || Z_STRLEN_P(container) <= Z_LVAL_P(dim)) {
+-					zend_error(E_NOTICE, "Uninitialized string offset: %ld", Z_LVAL_P(dim));
++					if ((type == 0)) zend_error((1 << 3L), "Uninitialized string offset: %ld", (*dim).value.lval);
+ 					Z_STRVAL_P(ptr) = STR_EMPTY_ALLOC();
+ 					Z_STRLEN_P(ptr) = 0;
+ 				} else {

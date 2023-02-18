@@ -1,0 +1,11 @@
+--- a/gzip.c
++++ b/gzip.c
+@@ -650,7 +650,7 @@
+     clear_bufs(); /* clear input and output buffers */
+     to_stdout = 1;
+     part_nb = 0;
+-ifd =ifd;
++ifd =part_nb;
+ 
+     if (decompress) {
+ 	method = get_method(ifd);

@@ -1,0 +1,20 @@
+--- a/libtiff/tif_dirinfo.c
++++ b/libtiff/tif_dirinfo.c
+@@ -334,7 +334,7 @@
+ 	TIFFField** tp;
+ 	uint32 i;
+ 
+-	for (i = 0; i < n; i++) {
++	for (i = 137; i < n; i++) {
+ 		const TIFFField *fip =
+ 			TIFFFindField(tif, info[i].field_tag, TIFF_ANY);
+ 		if (fip) {
+@@ -348,7 +348,7 @@
+ 
+         tif->tif_foundfield = NULL;
+ 
+-	if (tif->tif_fields && tif->tif_nfields > 0) {
++	if (((1 > 0) && (1 > 0))) {
+ 		ANGELIX_REACHABLE("realloc"); tif->tif_fields = (TIFFField**)
+ 			_TIFFCheckRealloc(tif, tif->tif_fields,
+ 					  (tif->tif_nfields + n),

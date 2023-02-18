@@ -1,0 +1,251 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+usage="Usage: ./repair-libtiff VERSION"
+
+if [[ $# > 0 ]]; then
+    version="$1"
+    shift
+else
+    echo "$usage"
+    exit 1
+fi
+
+arguments="$@"
+
+# Common functions -------------------------------------------------------------
+
+# replaces within "$3" lines starting from the only occurrence of symbol "$2" in file "$1"
+replace-in-range () {
+    local file="$1"
+    local symbol="$2"
+    local length="$3"
+    local original="$4"
+    local replacement="$5"
+
+    local begin=$(grep -n "$symbol" "$file" | cut -d : -f 1)
+    local end=$(( begin + length ))
+
+    sed -i "$begin,$end{s/$original/$replacement/;}" "$file"
+}
+
+add-header () {
+    local file="$1"
+    sed -i '1s/^/#ifndef ANGELIX_OUTPUT\n/' "$file"
+    sed -i '2s/^/#define ANGELIX_OUTPUT(type, expr, id) expr\n/' "$file"
+    sed -i '3s/^/#define ANGELIX_REACHABLE(id)\n/' "$file"
+    sed -i '4s/^/#endif\n/' "$file"
+}
+
+# Wireshark --------------------------------------------------------------------
+
+wireshark_test_suite="$(seq 1 50) 6000 6001 6002 6003 6004 6005 6006 6007 6008 6009 6010 6011 6012 6013 6014"  # some tests after 50 don't terminate
+# wireshark_test_suite=46
+
+GLIB_DIR="glib-2.30.0"
+
+if [ "$version" != "37112-37111" ]; then
+
+cat <<EOF > /tmp/build-wireshark
+#!/bin/bash
+export PATH="$PWD/.aux/wireshark/compiler/":$PATH
+make -e
+cd epan
+rm -f reassemble_test
+make -e reassemble_test
+EOF
+
+else 
+
+cat <<EOF > /tmp/build-wireshark
+#!/bin/bash
+make -e
+cd epan
+rm -f reassemble_test
+make -e reassemble_test
+EOF
+
+fi
+
+chmod u+x /tmp/build-wireshark
+
+build-glib-bitcode() {
+    configure="$PWD/.aux/wireshark/configure-glib"
+    build="$PWD/.aux/wireshark/compile-glib-bitcode"
+    (cd $GLIB_DIR && "$configure" && "$build")
+}
+
+instrument () {
+    local directory="$1"
+    local run_tests_script=$(readlink -f "$directory/wireshark-run-tests.sh")
+    sed -i 's/\$DUT /$ANGELIX_RUN $DUT /g' "$run_tests_script"
+    # this is not a binary:
+    # sed -i 's/\$TSHARK -i invalid_interface/$ANGELIX_RUN $TSHARK -i invalid_interface/' "$run_tests_script"
+    chmod u+x "$run_tests_script"
+
+    local reassemble_test="$directory/wireshark/epan/reassemble_test.c"
+    replace-in-range "$reassemble_test" 'test_fragment_add_seq_check_1(void)' 60 '}' 'ANGELIX_REACHABLE("pass60");}'
+    sed -i 's|for(i=0; i < sizeof(tests)/sizeof(tests\[0\]); i++ )|i=atoi(getenv("WIRESHARK60_SUBTEST"));|' "$reassemble_test"
+    add-header "$reassemble_test"
+
+    # due to unsupported constructs:
+    if [ "$version" == "37112-37111" ]; then
+        local reassemble="$directory/wireshark/epan/reassemble.c"
+        local line=$(grep -n "*reassembled_table != NULL" "$reassemble" | cut -d : -f 1)
+        sed -i $line'iGHashTable* x = *reassembled_table;' "$reassemble"
+        sed -i 's/*reassembled_table != NULL/x != 0/' "$reassemble"
+    fi
+
+    # due to unsupported constructs:
+    local dumpcap="$directory/wireshark/dumpcap.c"
+    sed -i 's/!(log_level & G_LOG_LEVEL_MASK & ~(G_LOG_LEVEL_DEBUG|G_LOG_LEVEL_INFO))/!(log_level \&\& (G_LOG_LEVEL_MASK != 0) \&\& !(G_LOG_LEVEL_DEBUG != 0 || G_LOG_LEVEL_INFO != 0))/g' "$dumpcap"
+    replace-in-range "$dumpcap" 'defined(DEBUG_DUMPCAP) || defined(DEBUG_CHILD_DUMPCAP)' 15 return 'ANGELIX_REACHABLE("dumpcaperror"); exit(1); return'
+    sed -i 's/global_capture_opts.ifaces->len/1/g' "$dumpcap"
+    sed -i 's/interface_opts = g_array_index(global_capture_opts.ifaces, interface_options, j);//' "$dumpcap"
+    sed -i 's/"Interface: %s", interface_opts.name/"Interface: %s", "invalid_interface"/' "$dumpcap"
+    add-header "$dumpcap"
+#    sed -i 's/exit_main(status);//g' "$dumpcap"
+#    sed -i 's/exit_main(1);//g' "$dumpcap"
+
+    if [ "$version" != "37112-37111" ]; then
+        ./.aux/wireshark/fix-fd-zero $directory/wireshark/tshark.c
+
+        if [ "$version" == "37284-37285" ]; then
+            local dcfdline=$(grep -n "FD_ZERO" $directory/wireshark/dumpcap.c | cut -d : -f 1)
+            sed -i $dcfdline'i#define FD_ZERO(p) memset((char *)(p), 0, sizeof(*(p)))' $directory/wireshark/dumpcap.c  # for some reason does not work without it
+            sed -i $dcfdline'i#undef FD_ZERO' $directory/wireshark/dumpcap.c
+        fi
+        ./.aux/wireshark/fix-fd-zero $directory/wireshark/dumpcap.c
+
+        local fdline=$(grep -n "FD_ZERO" $directory/wireshark/capture_sync.c | cut -d : -f 1)
+        sed -i $fdline'i#define FD_ZERO(p) memset((char *)(p), 0, sizeof(*(p)))' $directory/wireshark/capture_sync.c  # for some reason does not work without it
+        sed -i $fdline'i#undef FD_ZERO' $directory/wireshark/capture_sync.c
+        ./.aux/wireshark/fix-fd-zero $directory/wireshark/capture_sync.c
+    fi
+
+}
+
+repair-wireshark () {
+    local directory="$1"
+    local golden_directory="$2"
+    local src="$directory/wireshark"
+    local golden="$golden_directory/wireshark"    
+    local buggy=$(cat "$directory/bugged-program.txt")
+    local run_tests_script=$(readlink -f "$directory/wireshark-run-tests.sh")
+    cat <<EOF > /tmp/wireshark-oracle
+#!/bin/bash
+case "\$1" in
+6000)
+export WIRESHARK60_SUBTEST=0
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6001)
+export WIRESHARK60_SUBTEST=1
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6002)
+export WIRESHARK60_SUBTEST=2
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6003)
+export WIRESHARK60_SUBTEST=3
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6004)
+export WIRESHARK60_SUBTEST=4
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6005)
+export WIRESHARK60_SUBTEST=5
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6006)
+export WIRESHARK60_SUBTEST=6
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6007)
+export WIRESHARK60_SUBTEST=7
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6008)
+export WIRESHARK60_SUBTEST=8
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6009)
+export WIRESHARK60_SUBTEST=9
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6010)
+export WIRESHARK60_SUBTEST=10
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6011)
+export WIRESHARK60_SUBTEST=11
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6012)
+export WIRESHARK60_SUBTEST=12
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6013)
+export WIRESHARK60_SUBTEST=13
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+6014)
+export WIRESHARK60_SUBTEST=14
+"$run_tests_script" 60 |& grep --quiet PASS
+;;
+46)
+export LD_LIBRARY_PATH=\$PWD/wiretap/.libs/:\$PWD/epan/.libs:\$PWD/wsutil/.libs/:\$LD_LIBRARY_PATH  # this is for testing
+export ANGELIX_KLEE_LOAD="-load \$PWD/wiretap/.libs/libwiretap.so -load \$PWD/wsutil/.libs/libwsutil.so -load \$PWD/epan/.libs/libwireshark.so"  # this is for KLEE
+#cd test && \$ANGELIX_RUN ../.libs/tshark -i invalid_interface -w testout.pcap |& grep -q 'The capture session could not be initiated'
+> /tmp/wireshark-test46-output
+\$ANGELIX_RUN ./.libs/dumpcap -i invalid_interface -Z -B 1 |& tee /tmp/wireshark-test46-output
+if grep -q 'The capture session could not be initiated' /tmp/wireshark-test46-output; then
+if grep -q '^..:..:.. CaptureChild' /tmp/wireshark-test46-output; then
+exit 1
+else
+exit 0
+fi
+else
+exit 1
+fi
+;;
+*)
+"$run_tests_script" "\$1" |& grep --quiet PASS
+;;
+esac
+EOF
+    chmod u+x /tmp/wireshark-oracle
+
+    export ANGELIX_COMPILER_CUSTOM_KLEE_LINK="$PWD/$GLIB_DIR/glib/.libs/libglib-2.0.a $PWD/$GLIB_DIR/gmodule/.libs/libgmodule-2.0.a $PWD/$GLIB_DIR/gthread/.libs/libgthread-2.0.a"
+    export CC=gcc
+
+    angelix "$src" "$buggy" /tmp/wireshark-oracle $wireshark_test_suite \
+            --golden "$golden" \
+            --build "/tmp/build-wireshark" \
+            --configure "$PWD/.aux/wireshark/configure-$version" \
+            $arguments
+}
+
+# Main -------------------------------------------------------------------------
+
+directory="wireshark-bug-${version}"
+golden_directory="wireshark-fix-${version}"
+
+if [ ! -f "$directory/INSTRUMENTED" ]; then 
+    instrument "$directory"
+    touch "$directory/INSTRUMENTED"
+fi
+if [ ! -f "$golden_directory/INSTRUMENTED" ]; then
+    instrument "$golden_directory"
+    touch "$golden_directory/INSTRUMENTED"
+fi
+if [ ! -f "$GLIB_DIR/COMPILED" ]; then
+    build-glib-bitcode
+    touch "$GLIB_DIR/COMPILED"
+fi
+
+repair-wireshark "$directory" "$golden_directory"

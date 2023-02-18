@@ -1,0 +1,97 @@
+#!/bin/bash
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+arguments="$@"
+
+# Common functions -------------------------------------------------------------
+
+# replaces within "$3" lines starting from the only occurrence of symbol "$2" in file "$1"
+replace-in-range () {
+    local file="$1"
+    local symbol="$2"
+    local length="$3"
+    local original="$4"
+    local replacement="$5"
+
+    local begin=$(grep -n "$symbol" "$file" | cut -d : -f 1)
+    local end=$(( begin + length ))
+
+    sed -i "$begin,$end{s/$original/$replacement/;}" "$file"
+}
+
+add-header () {
+    local file="$1"
+    sed -i '1s/^/#ifndef ANGELIX_OUTPUT\n/' "$file"
+    sed -i '2s/^/#define ANGELIX_OUTPUT(type, expr, id) expr\n/' "$file"
+    sed -i '3s/^/#define ANGELIX_REACHABLE(id)\n/' "$file"
+    sed -i '4s/^/#endif\n/' "$file"
+}
+
+restore_original () {
+    local src="$1"
+    if [ -e $src.org ]; then
+        # restore the original
+        cp $src.org $src
+    else
+        # prepare the org file
+        cp $src $src.org
+    fi
+}
+
+# Openssl ----------------------------------------------------------------------
+
+cat <<EOF > /tmp/build-openssl
+#!/bin/bash
+rm -f test/heartbleed_test
+make -e && make -e test
+EOF
+
+chmod u+x /tmp/build-openssl
+
+cat <<EOF > /tmp/openssl-oracle
+#!/bin/bash
+\${ANGELIX_RUN:-eval} ./test/heartbleed_test \$1
+EOF
+
+chmod u+x /tmp/openssl-oracle
+
+instrument () {
+    local directory="$1"
+    test_makefile="$directory/test/Makefile"
+    restore_original $test_makefile
+    sed -i 's/tests:	exe apps $(TESTS)/tests: heartbleed_test/' "$test_makefile"
+    cat <<END >> $test_makefile
+heartbleed_test.o: heartbleed_test.c
+heartbleed_test: heartbleed_test.o \$(DLIBCRYPTO)
+	@target=heartbleed_test; \$(BUILD_CMD)
+END
+
+    cp ".aux/heartbleed/heartbleed_test.c" "$directory/test"
+    test_file="$directory/test/heartbleed_test.c"
+
+    local src1="$directory/ssl/t1_lib.c"
+    restore_original $src1
+    replace-in-range "$src1" \
+        '^tls1_process_heartbeat(' \
+        20 \
+        'if (hbtype == TLS1_HB_REQUEST)' \
+        'if (hbtype == TLS1_HB_REQUEST \&\& 0 < 1)'
+}
+
+openssl_test_suite="1 4 6 7 8"
+
+repair-openssl () {
+    angelix "$directory" "ssl/t1_lib.c" "/tmp/openssl-oracle" $openssl_test_suite \
+            --configure "./config no-shared no-asm > /dev/null && sed -i 's/^CFLAG=/CFLAG= -g /g' Makefile && sed -i 's/-O3//g' Makefile" \
+            --build "/tmp/build-openssl" \
+            --assert ".aux/heartbleed/assert.json" \
+            $arguments
+}
+
+directory="openssl-1.0.1-beta1"
+
+instrument "$directory"
+
+repair-openssl "$directory"

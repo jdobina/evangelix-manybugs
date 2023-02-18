@@ -1,0 +1,124 @@
+#!/bin/bash
+set -euo pipefail
+
+# Usage: ./fetch SUBJECT VERSION
+#
+# Downloads and extract archives if needed, creates two directories:
+# SUBJECT-bug-VERSION and SUBJECT-fix-VERSION
+# where it replaces the buggy file corrupted by genprog
+# with the original buggy and the original correct files accordingly.
+# Removes binaries and VC directories (.git, .svn, etc.)
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+usage="Usage: ./fetch SUBJECT VERSION"
+
+if [[ $# > 0 ]]; then
+    subject="$1"
+    shift
+else
+    echo "$usage"
+    exit 1
+fi
+
+if [[ $# > 0 ]]; then
+    version="$1"
+    shift
+else
+    echo "$usage"
+    exit 1
+fi
+
+
+DOWNLOAD="wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 --tries=5 --continue"
+
+
+clean-source () {
+    local directory="$1"    
+    pushd "$directory/$subject" &> /dev/null
+    find . -name .svn -exec rm -rf {} \; &> /dev/null || true
+    find . -name .git -exec rm -rf {} \; &> /dev/null || true
+    find . -name .hg -exec rm -rf {} \; &> /dev/null || true
+    if [ "$subject" == "wireshark" ]; then
+        ./autogen.sh &> /dev/null || true
+    fi
+    ./configure &> /dev/null || true
+    make clean &> /dev/null || true
+    make distclean &> /dev/null || true
+    popd &> /dev/null
+}
+
+restore-buggy () {
+    local directory="$1"
+    local buggy=$(cat "$directory/bugged-program.txt")
+    local buggy_preprocessed="$directory/$subject/$buggy"
+    local buggy_version=$(echo "$version" | cut -d "-" -f 1)
+    local buggy_original="$directory/diffs/${buggy}-${buggy_version}"
+
+    cp "$buggy_original" "$buggy_preprocessed"
+}
+
+restore-correct () {
+    local directory="$1"    
+    local buggy=$(cat "$directory/bugged-program.txt")
+    local buggy_preprocessed="$directory/$subject/$buggy"
+    if [ "$subject" == "wireshark" ]; then
+        if [ "$version" == "37172-37171" ] || [ "$version" == "37172-37173" ]; then
+            local buggy_version=$(echo "$version" | cut -d "-" -f 1)
+            local buggy_original="$directory/diffs/${buggy}-${buggy_version}"
+            cp "$buggy_original" "$buggy_preprocessed"
+            sed -i 's/!(log_level & G_LOG_LEVEL_MASK & ~(G_LOG_LEVEL_DEBUG|G_LOG_LEVEL_INFO))/0/g' "$buggy_preprocessed"
+        else
+            local correct_version=$(echo "$version" | cut -d "-" -f 2)
+            local correct_original="$directory/diffs/${buggy}-${correct_version}"
+            cp "$correct_original" "$buggy_preprocessed"
+        fi
+    else
+        local correct_version=$(echo "$version" | cut -d "-" -f 2)
+        local correct_original="$directory/diffs/${buggy}-${correct_version}"
+        cp "$correct_original" "$buggy_preprocessed"
+    fi
+}
+
+if [ "$subject" == "openssl" ]; then
+    url="http://www.openssl.org/source/"
+    archive="openssl-${version}.tar.gz"
+    directory="openssl-${version}"
+else
+    url="http://dijkstra.cs.virginia.edu/genprog/resources/genprog-icse2012-benchmarks"    
+    archive="${subject}-bug-${version}.tar.gz"
+    directory="${subject}-bug-${version}"
+fi
+
+if ! [[ -d "$directory" ]]; then
+    mkdir -p cache
+    if ! [[ -e "cache/$archive" ]]; then
+        $DOWNLOAD "$url/$archive" --directory-prefix=cache
+    fi
+    tar xf "cache/$archive"
+fi
+
+GLIB_URL="https://download.gimp.org/pub/glib/2.30/"
+GLIB_ARCHIVE="glib-2.30.0.tar.bz2"
+GLIB_DIR="glib-2.30.0"
+
+if [ "$subject" == "wireshark" ]; then
+    if ! [[ -d "$GLIB_DIR" ]]; then
+        mkdir -p cache
+        if ! [[ -e "cache/$GLIB_ARCHIVE" ]]; then
+            $DOWNLOAD "$GLIB_URL/$GLIB_ARCHIVE" --directory-prefix=cache
+        fi
+        tar xf "cache/$GLIB_ARCHIVE"
+        ( cd "$GLIB_DIR" && ./autogen.sh )
+    fi
+fi
+
+if [ "$subject" != "openssl" ]; then
+    echo "preparing source code"
+    golden_directory="${subject}-fix-${version}"
+    cp -r "$directory" "$golden_directory"
+    clean-source "$directory"
+    clean-source "$golden_directory" # otherwise, compiler can be detected wrongly
+    restore-buggy "$directory"
+    restore-correct "$golden_directory"
+fi
