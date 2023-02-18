@@ -85,7 +85,7 @@ if [ "$subject" == "openssl" ]; then
     archive="openssl-${version}.tar.gz"
     directory="openssl-${version}"
 else
-    url="http://dijkstra.cs.virginia.edu/genprog/resources/genprog-icse2012-benchmarks"    
+    url="https://repairbenchmarks.cs.umass.edu/ManyBugs/scenarios"
     archive="${subject}-bug-${version}.tar.gz"
     directory="${subject}-bug-${version}"
 fi
