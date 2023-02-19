@@ -124,7 +124,7 @@
     },
 
     "gzip": {
-        "3eb6091d69a-884ef6d16c6": [
+        "3eb6091d69-884ef6d16c": [
             "--group-size", "1",
             "--klee-max-forks", "100",
             "--ignore-trivial",
