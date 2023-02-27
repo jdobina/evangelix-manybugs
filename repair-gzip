@@ -123,7 +123,7 @@ instrument_test() {
 
 instrument_source () {
     local directory="$1"
-    if [[ "$version" == *"a1d3d4019ddd22"* ]]
+    if [[ "$version" == *"a1d3d4019d"* ]]
     then
         instrument_test "$directory"
         #  local test7_script="$directory/gzip/tests/stdin"
@@ -204,7 +204,7 @@ preinstrument(){
     sed -i '/\^PASS/i print "FAIL:$line";' "$directory/gzip-run-tests.pl"
 
     case $version in
-        3eb6091d69a-884ef6d16c6 )
+        3eb6091d69-884ef6d16c )
             if [[ "$is_golden" ==  *"notgolden"* ]]; then
                 local test6_script="$directory/gzip/tests/null-suffix-clobber"
                 sed -i "s/invalid suffix/incorrect suffix/" "$test6_script"
