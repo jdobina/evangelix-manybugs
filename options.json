@@ -131,7 +131,7 @@
             "--synthesis-level", "boolean-constants",
             "--suspicious", "30"
         ],
-        "a1d3d4019ddd22-f17cbd13a1d0a7": [
+        "a1d3d4019d-f17cbd13a1": [
             "--group-size", "1",
             "--klee-max-forks", "100",
             "--synthesis-level", "variables",
