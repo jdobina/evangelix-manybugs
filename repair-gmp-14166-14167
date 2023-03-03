@@ -185,8 +185,8 @@ instrument () {
             sed -i 's/no-dependencies ansi2knr/no-dependencies/g' "$directory/gmp/configure.in"
             sed -i 's/no-dependencies ansi2knr/no-dependencies/g' "$directory/gmp/Makefile.am"
             currdir=$(pwd)
-            cp $HOME/angelix/build/llvm-gcc4.2-2.9-x86_64-linux/lib/gcc/x86_64-unknown-linux-gnu/4.2.1/install-tools/include/stddef.h "$directory/gmp/mpz/stddef.h"
-            cp $HOME/angelix/build/llvm-gcc4.2-2.9-x86_64-linux/lib/gcc/x86_64-unknown-linux-gnu/4.2.1/install-tools/include/stdarg.h "$directory/gmp/mpz/stdarg.h"
+            cp /angelix/build/llvm-gcc4.2-2.9-x86_64-linux/lib/gcc/x86_64-unknown-linux-gnu/4.2.1/install-tools/include/stddef.h "$directory/gmp/mpz/stddef.h"
+            cp /angelix/build/llvm-gcc4.2-2.9-x86_64-linux/lib/gcc/x86_64-unknown-linux-gnu/4.2.1/install-tools/include/stdarg.h "$directory/gmp/mpz/stdarg.h"
 
 
             for ctest in "t-gcd"; do
