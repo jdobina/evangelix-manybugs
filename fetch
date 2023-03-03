@@ -93,7 +93,7 @@ if [ "$subject" == "wireshark" ]; then
     if ! [[ -d "$GLIB_DIR" ]]; then
         mkdir -p cache
         if ! [[ -e "cache/$GLIB_ARCHIVE" ]]; then
-            $DOWNLOAD "$GLIB_URL/$GLIB_ARCHIVE" --directory-prefix=cache
+            $DOWNLOAD "$GLIB_URL/$GLIB_ARCHIVE" --directory-prefix=cache --no-check-certificate
         fi
         tar xf "cache/$GLIB_ARCHIVE"
         ( cd "$GLIB_DIR" && ./autogen.sh )
