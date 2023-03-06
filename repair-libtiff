@@ -117,7 +117,7 @@ instrument_test_script () {
     add-angelix-runner "$test48_script" TIFFCROP 0
     
     local test49_script="$directory/libtiff/test/tiffcrop-extractz14-logluv-3c-16b.sh"
-    if [ "$version" == "d39db2b-4cd598c" ]; then
+    if [ "$version" == "e8a47d4-023b6df" ]; then
         add-angelix-runner "$test49_script" tiffinfo 0
     else
         add-angelix-runner "$test49_script" TIFFCROP 0
@@ -152,7 +152,7 @@ instrument () {
     sed -i 's/return 1/return ANGELIX_OUTPUT(int, 1, "striprwreturn")/g' "$test4_source"
     sed -i 's/return 0/return ANGELIX_OUTPUT(int, 0, "striprwreturn")/g' "$test4_source"
 
-    if [ "$version" != "0860361d-1ba75257" ] && [ "$version" != "90d136e4-4c66680f" ] && [ "$version" != "ee2ce5b7-b5691a5a" ] && [ "$version" != "d13be72c-ccadf48a" ]; then
+    if [ "$version" != "eec4c06-ee65c74" ] && [ "$version" != "1563270-1136bdf" ] && [ "$version" != "eb326f9-eec7ec0" ] && [ "$version" != "3b848a7-3edb9cd" ]; then
         local tif_error="$directory/libtiff/libtiff/tif_error.c"
         restore_original $tif_error
         add-header "$tif_error"
@@ -160,21 +160,21 @@ instrument () {
         replace-in-range "$tif_error" 'TIFFErrorExt(' 5 '{' '{ANGELIX_REACHABLE("TIFFErrorExt");'
     fi
 
-    if [ "$version" == "90d136e4-4c66680f" ] || [ "$version" == "ee2ce5b7-b5691a5a" ]; then
+    if [ "$version" == "1563270-1136bdf" ] || [ "$version" == "eb326f9-eec7ec0" ]; then
         local tiff2pdf="$directory/libtiff/tools/tiff2pdf.c"
         restore_original $tiff2pdf
         add-header "$tiff2pdf"
         sed -i 's/return ret/return ANGELIX_OUTPUT(int, ret, "ret")/' "$tiff2pdf"
     fi
 
-    if [ "$version" == "d39db2b-4cd598c" ]; then
+    if [ "$version" == "e8a47d4-023b6df" ]; then
         local tiffinfo="$directory/libtiff/tools/tiffinfo.c"
         restore_original $tiffinfo
         add-header "$tiffinfo"
         sed -i 's/return (status)/return ANGELIX_OUTPUT(int, status, "status")/' "$tiffinfo"
     fi
 
-    if [ "$version" == "4a24508-cc79c2b" ]; then
+    if [ "$version" == "ce4b7af-7d6e298" ]; then
         local dirinfo="$directory/libtiff/libtiff/tif_dirinfo.c"
         restore_original $dirinfo
         add-header $dirinfo
@@ -182,7 +182,7 @@ instrument () {
         sed -i 's/tif->tif_fields = (TIFFField\*\*)/ANGELIX_REACHABLE("realloc"); tif->tif_fields = (TIFFField**)/' $dirinfo
     fi
 
-    if [ "$version" == "0661f81-ac6a583" ]; then
+    if [ "$version" == "371336d-865f7b2" ]; then
         local tif_write="$directory/libtiff/libtiff/tif_write.c"
         restore_original $tif_write
         add-header "$tif_write"
@@ -190,7 +190,7 @@ instrument () {
         replace-in-range "$tif_write" TIFFFlushData1 15 'return (1)' 'return ANGELIX_OUTPUT(int, 1, "flush")'
     fi
 
-    if [ "$version" == "d13be72c-ccadf48a" ]; then
+    if [ "$version" == "3b848a7-3edb9cd" ]; then
         local src1="$directory/libtiff/libtiff/tif_warning.c"
         restore_original $src1
         add-header $src1
@@ -297,7 +297,7 @@ fi
 EOF
     chmod u+x /tmp/libtiff-oracle
     local golden="$golden_directory/libtiff"
-    if [ "$version" == "4a24508-cc79c2b" ]; then
+    if [ "$version" == "ce4b7af-7d6e298" ]; then
         angelix "$src" "$buggy" /tmp/libtiff-oracle $libtiff_test_suite \
             --assert .aux/libtiff/assert.json \
             --golden "$golden" \
