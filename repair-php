@@ -203,11 +203,11 @@ instrument () {
     local directory="$1"
 
     case $version in
-        307931-307934 )
+        2011-02-01-01745fa657-1f49902999 )
             local src1="$directory/php/main/output.c"
             restore_original $src1
             ;;
-        309579-309580 )
+        2011-03-23-63673a533f-2adf58cfcf )
             local src="$directory/php/ext/date/php_date.c"
             restore_original $src
 
@@ -225,7 +225,7 @@ instrument () {
             sed -i "s/php_error_docref(NULL TSRMLS_CC, E_WARNING, \"The ISO interval '%s' did not contain an interval.\", isostr);/ANGELIX_OUTPUT(int, DID_NOT_CONTAIN_INTERVAL, \"error\"); php_error_docref(NULL TSRMLS_CC, E_WARNING, \"The ISO interval '%s' did not contain an interval.\", isostr);/g" $src
             sed -i "s/php_error_docref(NULL TSRMLS_CC, E_WARNING, \"The ISO interval '%s' did not contain an end date or a recurrence count.\", isostr);/ANGELIX_OUTPUT(int, DID_NOT_CONTAIN_END_DATE, \"error\"); php_error_docref(NULL TSRMLS_CC, E_WARNING, \"The ISO interval '%s' did not contain an end date or a recurrence count.\", isostr);/g" $src
             ;;
-        309111-309159 )
+        2011-03-11-d890ece3fc-6e74d95f34 )
             local src1="$directory/php/ext/standard/url.c"
             restore_original $src1
             add-header "$src1"
@@ -246,7 +246,7 @@ instrument () {
                 'ANGELIX_OUTPUT(int, strlen(resource->path), \"parse_url_out\");\
 \tif (key > -1) {'
             ;;
-        309892-309910 )
+        2011-04-02-70075bc84c-5a8c917c37 )
             local src1="$directory/php/ext/standard/string.c"
             restore_original $src1
             add-header $src1
@@ -270,7 +270,7 @@ instrument () {
                 'zend_binary_strncasecmp(s1 + offset, (s1_len - offset), s2, s2_len, cmp_len)' \
                 'ANGELIX_OUTPUT(int, zend_binary_strncasecmp(s1 + offset, (s1_len - offset), s2, s2_len, cmp_len), \"substr_compare_out\")'
             ;;
-        308262-308315 )
+        2011-02-11-f912a2d087-b84967d3e2 )
             local src1="$directory/php/Zend/zend_execute.c"
             restore_original $src1
             add-header $src1
@@ -284,7 +284,7 @@ instrument () {
             local src2="$directory/php/main/output.c"
             restore_original $src2
             ;;
-        308734-308761 )
+        2011-02-27-e65d361fde-1d984a7ffd )
             local src1="$directory/php/ext/tokenizer/tokenizer.c"
             restore_original $src1
 
@@ -310,7 +310,7 @@ instrument () {
                 'if (num < 0 || num >= length)' \
                 'if (num < 0 || num >= length || num == 8208)'
             ;;
-        309688-309716 )
+        2011-03-25-8138f7de40-3acdca4703 )
             local src1="$directory/php/ext/phar/phar_object.c"
             restore_original $src1
 
@@ -329,7 +329,7 @@ instrument () {
 \tunsigned char nApplyCount = fname_map->nApplyCount;\
 \tzend_bool bApplyProtection = fname_map->bApplyProtection;'
             ;;
-        310370-310389 )
+        2011-04-19-11941b3fd2-821d7169d9 )
             local src1="$directory/php/Zend/zend_closures.c"
             restore_original $src1
 
@@ -349,7 +349,7 @@ instrument () {
                 'if (num < 0 || num >= length)' \
                 'if (num < 0 || num >= length || num == 1259-1)'
             ;;
-        311346-311348 )
+        2011-05-24-b60f6774dc-1056c57fa9 )
             cp $directory/php/Zend/zend_multiply.h $directory/php/Zend/zend_multiply.h.bak
             cp .aux/php/Zend/zend_multiply.h $directory/php/Zend/zend_multiply.h
 
@@ -369,7 +369,7 @@ instrument2 () {
     local directory="$1"
 
     case $version in
-        310370-310389 )
+        2011-04-19-11941b3fd2-821d7169d9 )
             local src1="$directory/php/Zend/zend_closures.c"
             restore_original $src1
 
