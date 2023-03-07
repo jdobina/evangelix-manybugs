@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Usage: ./fetch SUBJECT VERSION URL
+# Usage: ./fetch SUBJECT VERSION
 #
 # Downloads and extract archives if needed, creates two directories:
 # SUBJECT-bug-VERSION and SUBJECT-fix-VERSION
@@ -11,15 +11,27 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-usage="Usage: ./fetch SUBJECT VERSION URL"
+usage="Usage: ./fetch SUBJECT VERSION"
 
-[ $# -ne 3 ] && echo "$usage" && exit 1
+if [[ $# > 0 ]]; then
+    subject="$1"
+    shift
+else
+    echo "$usage"
+    exit 1
+fi
 
-subject=$1
-version=$2
-url=$3
+if [[ $# > 0 ]]; then
+    version="$1"
+    shift
+else
+    echo "$usage"
+    exit 1
+fi
+
 
 DOWNLOAD="wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 --tries=5 --continue"
+
 
 clean-source () {
     local directory="$1"    
@@ -69,9 +81,11 @@ restore-correct () {
 }
 
 if [ "$subject" == "openssl" ]; then
+    url="http://www.openssl.org/source/"
     archive="openssl-${version}.tar.gz"
     directory="openssl-${version}"
 else
+    url="https://repairbenchmarks.cs.umass.edu/ManyBugs/scenarios"
     archive="${subject}-bug-${version}.tar.gz"
     directory="${subject}-bug-${version}"
 fi
@@ -79,10 +93,9 @@ fi
 if ! [[ -d "$directory" ]]; then
     mkdir -p cache
     if ! [[ -e "cache/$archive" ]]; then
-        $DOWNLOAD "$url" -O "cache/$archive"
+        $DOWNLOAD "$url/$archive" --directory-prefix=cache
     fi
-    mkdir "$directory"
-    tar xf "cache/$archive" -C "$directory" --strip-components=1
+    tar xf "cache/$archive"
 fi
 
 GLIB_URL="https://download.gimp.org/pub/glib/2.30/"

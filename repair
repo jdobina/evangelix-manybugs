@@ -2,52 +2,49 @@
 
 set -euo pipefail
 
-# Usage: ./repair URL
+# Usage: ./repair SUBJECT VERSION
 #
 # Top script for executing repair
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-usage="Usage: ./repair URL"
+usage="Usage: ./repair SUBJECT VERSION"
 
-[ $# -ne 1 ] && echo "$usage" && exit 1
-
-url="$1"
-archive=$(basename $url)
-IFS="-" read -a tokens <<< "${archive%.tar.gz}"
-if [ ${#tokens[@]} -eq 7 ]; then
-    subject=${tokens[0]}
-    version="${tokens[5]}-${tokens[6]}"
-elif [ ${#tokens[@]} -eq 4 ]; then
-    subject=${tokens[0]}
-    version="${tokens[2]}-${tokens[3]}"
+if [[ $# > 0 ]]; then
+    subject="$1"
+    shift
 else
-    echo "Invalid archive name format"
+    echo "$usage"
     exit 1
 fi
 
-echo "subject: $subject"
-echo "version: $version"
+if [[ $# > 0 ]]; then
+    version="$1"
+    shift
+else
+    echo "$usage"
+    exit 1
+fi
 
 case $subject in
     wireshark|gzip|libtiff)
         rm -rf ${subject}-*-${version}
-        ./fetch $subject $version $url
+        ./fetch $subject $version
         ./repair-$subject $version `./get-options $subject $version`
         ;;
     php)
         rm -rf ${subject}-*-${version}
-        ./fetch $subject $version $url
+        ./fetch $subject $version
         ./repair-$subject $version `./get-options $subject $version` --ignore-lines
         ;;
     gmp)
         rm -rf ${subject}-*-${version}
-        ./fetch $subject $version $url
+        ./fetch $subject $version
         ./repair-$subject-$version `./get-options $subject $version`
         ;;
     openssl)
         rm -rf ${subject}-${version}
-        ./fetch $subject $version $url
+        ./fetch $subject $version
         ./repair-$subject $version `./get-options $subject $version`
         ;;
     *)
