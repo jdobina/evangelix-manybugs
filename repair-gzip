@@ -204,7 +204,7 @@ preinstrument(){
     sed -i '/\^PASS/i print "FAIL:$line";' "$directory/gzip-run-tests.pl"
 
     case $version in
-        3eb6091d69-884ef6d16c )
+        2010-02-19-3eb6091d69-884ef6d16c )
             if [[ "$is_golden" ==  *"notgolden"* ]]; then
                 local test6_script="$directory/gzip/tests/null-suffix-clobber"
                 sed -i "s/invalid suffix/incorrect suffix/" "$test6_script"
