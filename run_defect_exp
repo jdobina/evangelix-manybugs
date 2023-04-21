@@ -1,0 +1,84 @@
+#!/bin/bash
+
+usage() {
+    cat << EOF
+Usage: $0 [-h] [-f] [-d seconds] [-i iterations] tool program version
+EOF
+}
+
+fail() {
+    touch "$result_dir"/"$tool"_exp_fail
+}
+
+ignore_finished=true
+delay=0
+iterations=1
+while getopts "d:i:fh" opt; do
+    case $opt in
+        f)
+            ignore_finished=false
+            ;;
+        d)
+            delay=$OPTARG
+            ;;
+        i)
+            iterations=$OPTARG
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        *)
+            usage
+            exit 1
+    esac
+done
+shift $((OPTIND-1))
+[ $# -ne 3 ] && usage && exit 1
+
+set -euxo pipefail
+
+tool="$1"
+program="$2"
+version="$3"
+
+if [ "$tool" != "angelix" -a "$tool" != "evangelix" ]; then
+    echo "invalid tool: $tool" >&2
+    exit 1
+fi
+
+result_dir=results/"$tool"/"$program"-"$version"
+
+if [[ "$ignore_finished" = "true" && (-f "$result_dir"/"$tool"_exp_ok || -f "$result_dir"/"$tool"_exp_fail) ]]; then
+    echo "experiment is already finished for this defect" >&2
+    exit 2
+fi
+
+rm -rf "$result_dir"
+mkdir -p "$result_dir"
+
+trap fail ERR
+
+(
+for ((i = 1; i <= $iterations; i++)); do
+    sleep $delay
+
+    rm -rf .angelix
+    rm -rf "$program"-bug* "$program"-fix*
+    rm -f *.patch*
+
+    ./repair "$program" "$version"
+
+    iter_dir="$result_dir"/"$i"
+    mkdir -p "$iter_dir"
+
+    mv .angelix "$iter_dir"
+    mv "$program"-bug* "$program"-fix* "$iter_dir"
+    patch=$(ls *.patch* || true)
+    if [ -n "$patch" ]; then
+        mv "$patch" "$iter_dir"
+    fi
+done
+
+touch "$result_dir"/"$tool"_exp_ok
+) 2>&1 | tee "$result_dir"/"$tool"_exp.log
