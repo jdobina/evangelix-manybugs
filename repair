@@ -30,22 +30,22 @@ case $subject in
     wireshark|gzip|libtiff)
         rm -rf ${subject}-*-${version}
         ./fetch $subject $version
-        ./repair-$subject $version `./get-options $subject $version`
+        ./repair-$subject $version `./get-options $subject $version` --verbose
         ;;
     php)
         rm -rf ${subject}-*-${version}
         ./fetch $subject $version
-        ./repair-$subject $version `./get-options $subject $version` --ignore-lines
+        ./repair-$subject $version `./get-options $subject $version` --ignore-lines --verbose
         ;;
     gmp)
         rm -rf ${subject}-*-${version}
         ./fetch $subject $version
-        ./repair-$subject-$version `./get-options $subject $version`
+        ./repair-$subject-$version `./get-options $subject $version` --verbose
         ;;
     openssl)
         rm -rf ${subject}-${version}
         ./fetch $subject $version
-        ./repair-$subject $version `./get-options $subject $version`
+        ./repair-$subject $version `./get-options $subject $version` --verbose
         ;;
     *)
         echo 'Wrong subject name'
