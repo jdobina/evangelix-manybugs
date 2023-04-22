@@ -54,7 +54,7 @@ restore-buggy () {
     local buggy_preprocessed="$directory/$subject/$buggy"
     IFS="-" read -a version_tokens <<< "$version"
     local buggy_version=${version_tokens[-2]}
-    local buggy_original="$directory/diffs/${buggy}-${buggy_version}"
+    local buggy_original=$(ls $directory/diffs/${buggy}-${buggy_version}*)
 
     cp "$buggy_original" "$buggy_preprocessed"
 }
@@ -67,17 +67,17 @@ restore-correct () {
     if [ "$subject" == "wireshark" ]; then
         if [ "$version" == "37172-37171" ] || [ "$version" == "37172-37173" ]; then
             local buggy_version=${version_tokens[-2]}
-            local buggy_original="$directory/diffs/${buggy}-${buggy_version}"
+            local buggy_original=$(ls $directory/diffs/${buggy}-${buggy_version}*)
             cp "$buggy_original" "$buggy_preprocessed"
             sed -i 's/!(log_level & G_LOG_LEVEL_MASK & ~(G_LOG_LEVEL_DEBUG|G_LOG_LEVEL_INFO))/0/g' "$buggy_preprocessed"
         else
             local correct_version=${version_tokens[-1]}
-            local correct_original="$directory/diffs/${buggy}-${correct_version}"
+            local correct_original=$(ls $directory/diffs/${buggy}-${correct_version}*)
             cp "$correct_original" "$buggy_preprocessed"
         fi
     else
         local correct_version=${version_tokens[-1]}
-        local correct_original="$directory/diffs/${buggy}-${correct_version}"
+        local correct_original=$(ls $directory/diffs/${buggy}-${correct_version}*)
         cp "$correct_original" "$buggy_preprocessed"
     fi
 }
