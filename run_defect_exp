@@ -60,6 +60,8 @@ mkdir -p "$result_dir"
 trap fail ERR
 
 (
+ln -sf options-"$tool".json options.json
+
 for ((i = 1; i <= $iterations; i++)); do
     sleep $delay
 
