@@ -1,0 +1,16 @@
+#!/bin/bash
+
+[ $# -ne 1 ] && echo "Usage: $0 dir" && exit 1
+
+
+find $1 \
+    \( -type f \
+    \( -name '*exp.log' \
+    -o -name '*exp_ok' \
+    -o -name '*exp_fail' \
+    -o -name 'angelix.log' \
+    -o -name 'last-angelic-forest.json' \
+    -o -name 'statistics.json' \
+    -o -name '*.patch' \) -print \) , \
+    \( -type f -name '*.c' -exec sh -c "ls '{}'.backup >/dev/null 2>&1 && ls '{}'*" \; \) \
+    | xargs tar czf -
