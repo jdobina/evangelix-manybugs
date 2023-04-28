@@ -194,6 +194,16 @@
             "--klee-max-forks", "100",
             "--group-size", "1",
             "--lines", "1004"
+        ],
+        "2011-11-02-de50e98a07-8d520d6296": [
+            "--defect", "if-conditions",
+                "uninit-vars",
+                "if-to-elseifs",
+                "missing-elseifs",
+                "missing-loop-breaks",
+                "missing-loop-continues",
+            "--klee-max-forks", "100",
+            "--group-size", "1"
         ]
     },
 

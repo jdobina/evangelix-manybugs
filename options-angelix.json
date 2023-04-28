@@ -120,6 +120,11 @@
             "--klee-max-forks", "100",
             "--group-size", "1",
             "--lines", "1004"
+        ],
+        "2011-11-02-de50e98a07-8d520d6296": [
+            "--defect", "if-conditions",
+            "--klee-max-forks", "100",
+            "--group-size", "1"
         ]
     },
 
