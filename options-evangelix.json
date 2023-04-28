@@ -395,6 +395,19 @@
            "--klee-max-forks", "100",
            "--klee-solver-timeout", "10",
            "--klee-timeout", "60"
+        ],
+        "2009-06-30-b44af47-e0b51f3": [
+            "--defect", "if-conditions", "assignments",
+                "return-values",
+                "uninit-vars",
+                "if-to-elseifs",
+                "missing-elseifs",
+                "missing-loop-breaks",
+                "missing-loop-continues",
+            "--klee-max-forks", "100",
+            "--klee-solver-timeout", "100",
+            "--klee-timeout", "100",
+            "--group-size", "1"
         ]
     },
 

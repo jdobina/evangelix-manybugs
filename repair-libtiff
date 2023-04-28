@@ -80,6 +80,9 @@ add-angelix-runner () {
 instrument_test_script () {
     local directory="$1"
 
+    local test18_script="$directory/libtiff/test/tiffcp-logluv.sh"
+    add-angelix-runner "$test18_script" TIFFCP 1
+
     local test22_script="$directory/libtiff/test/tiffcp-split.sh"
     add-angelix-runner "$test22_script" TIFFCP 0
 
@@ -152,12 +155,22 @@ instrument () {
     sed -i 's/return 1/return ANGELIX_OUTPUT(int, 1, "striprwreturn")/g' "$test4_source"
     sed -i 's/return 0/return ANGELIX_OUTPUT(int, 0, "striprwreturn")/g' "$test4_source"
 
-    if [ "$version" != "2006-03-03-eec4c06-ee65c74" ] && [ "$version" != "2010-06-30-1563270-1136bdf" ] && [ "$version" != "2010-11-27-eb326f9-eec7ec0" ] && [ "$version" != "2005-12-21-3b848a7-3edb9cd" ]; then
+    if [ "$version" != "2006-03-03-eec4c06-ee65c74" ] && [ "$version" != "2010-06-30-1563270-1136bdf" ] && [ "$version" != "2010-11-27-eb326f9-eec7ec0" ] && [ "$version" != "2005-12-21-3b848a7-3edb9cd" ] && [ "$version" != "2009-06-30-b44af47-e0b51f3" ]; then
         local tif_error="$directory/libtiff/libtiff/tif_error.c"
         restore_original $tif_error
         add-header "$tif_error"
         replace-in-range "$tif_error" 'TIFFError('    5 '{' '{ANGELIX_REACHABLE("TIFFError");'
         replace-in-range "$tif_error" 'TIFFErrorExt(' 5 '{' '{ANGELIX_REACHABLE("TIFFErrorExt");'
+    fi
+
+    if [ "$version" == "2009-06-30-b44af47-e0b51f3" ] ; then
+        local tiffcp="$directory/libtiff/tools/tiffcp.c"
+        restore_original $tiffcp
+        add-header "$tiffcp"
+        replace-in-range "$tiffcp" 'else if (compression == COMPRESSION_SGILOG' 4 \
+            'TIFFSetField(out, TIFFTAG_PHOTOMETRIC,' '{ANGELIX_REACHABLE("sgilog"); TIFFSetField(out, TIFFTAG_PHOTOMETRIC,'
+        replace-in-range "$tiffcp" 'else if (compression == COMPRESSION_SGILOG' 4 \
+            'PHOTOMETRIC_LOGL : PHOTOMETRIC_LOGLUV);' 'PHOTOMETRIC_LOGL : PHOTOMETRIC_LOGLUV);}'
     fi
 
     if [ "$version" == "2010-06-30-1563270-1136bdf" ] || [ "$version" == "2010-11-27-eb326f9-eec7ec0" ]; then
