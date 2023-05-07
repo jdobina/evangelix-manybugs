@@ -206,6 +206,11 @@ instrument () {
         2011-11-02-de50e98a07-8d520d6296 )
             local src1="$directory/php/Zend/zend_compile.c"
             restore_original $src1
+            sed -i '1s/^/#include <assert.h>\n/' $src1
+            replace-in-range $src1 'static int zend_traits_merge_functions_to_class' 9 \
+                'add = 1' 'add = 2'
+            replace-in-range $src1 'static int zend_traits_merge_functions_to_class' 45 \
+                'if (existing_fn &&' 'assert(add != 2 || !existing_fn); if (existing_fn \&\&'
             ;;
         2011-02-01-01745fa657-1f49902999 )
             local src1="$directory/php/main/output.c"
