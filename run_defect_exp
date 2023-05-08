@@ -75,7 +75,7 @@ for ((i = 1; i <= $iterations; i++)); do
     mkdir -p "$iter_dir"
 
     mv .angelix "$iter_dir"
-    mv "$program"-bug* "$program"-fix* "$iter_dir"
+    rm -rf "$program"-bug* "$program"-fix*
     patch=$(ls *.patch* || true)
     if [ -n "$patch" ]; then
         mv "$patch" "$iter_dir"
